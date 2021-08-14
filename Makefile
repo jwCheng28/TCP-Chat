@@ -1,4 +1,4 @@
-CC = gcc -std=c11 -g -O0 -Wall
+CC = gcc -std=c11 -g -O0 -pthread
 exe = server
 
 $(exe): server.c
