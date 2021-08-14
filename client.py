@@ -1,18 +1,41 @@
 import socket
+import sys
+import select
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-host = socket.gethostname()
-port = 45001
+class Client:
+    def __init__(self, host=None, port=None, user="Anonymous"):
+        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.host = host or socket.gethostname()
+        self.port = port or 45001
+        self.user = user
+        self.clientSocket.connect((self.host, self.port))
+        self.connected = True
+        self.clientSocket.send(self.user.encode())
 
-s.connect((host, port))
-user = input("Enter Username: ")
-s.send(user.encode())
-while True:
-    msg = input("Enter MSG: ")
-    s.send(msg.encode())
-    if msg == "QUIT":
-        break
-    response = [e.strip() for e in s.recv(300).decode().split(":")]
-    respUser, respMsg = response[0], response[1]
-    print("{}: {}".format(respUser, respMsg))
-s.close()
+    def sendMSG(self):
+        # msg = input("Enter Message: ")
+        msg = sys.stdin.readline().strip()
+        self.clientSocket.send(msg.encode())
+        if msg == "QUIT":
+            self.connected = False
+            self.clientSocket.close()
+            exit()
+
+    def receiveMSG(self):
+        resp = self.clientSocket.recv(300).decode()
+        print(resp)
+
+    def runClient(self):
+        while True:
+            readList = [sys.stdin, self.clientSocket]
+            readable, _, _ = select.select(readList, [], [])
+            for r in readable:
+                if r == self.clientSocket:
+                    self.receiveMSG()
+                else:
+                    self.sendMSG()
+
+if __name__ == "__main__":
+    user = input("Enter Username: ")
+    client = Client(user=user)
+    client.runClient()
