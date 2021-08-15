@@ -10,6 +10,10 @@ class Client:
         self.user = user
         self.connected = False
 
+        self.RESPSIZE = 300
+        self.KEYSIZE = 12
+        self.KEYS = {"CONN_FAILURE":-1, "CONN_SUCCESS":1}
+
     def quit(self):
         self.connected = False
         self.clientSocket.close()
@@ -17,22 +21,26 @@ class Client:
 
     def connectToServer(self):
         self.clientSocket.connect((self.host, self.port))
-        connResp = self.clientSocket.recv(10).decode()
-        if connResp == "FAILED":
-            print("Connection Failed; Exiting")
-            self.quit()
+        connResp = self.clientSocket.recv(self.KEYSIZE).decode()
+        if connResp in self.KEYS:
+            if self.KEYS[connResp] < 0:
+                print("Connection Failed; Exiting")
+                self.quit()
+            elif self.KEYS[connResp] > 0:
+                self.connected = True
+                self.clientSocket.send(self.user.encode())
         else:
-            self.connected = True
-            self.clientSocket.send(self.user.encode())
+            print("Error has Occurred; Exiting")
+            self.quit()
 
     def sendMSG(self):
         msg = sys.stdin.readline().strip()
         self.clientSocket.send(msg.encode())
-        if msg[:4] == "QUIT":
+        if msg == "QUIT":
             self.quit()
 
     def receiveMSG(self):
-        resp = self.clientSocket.recv(300).decode()
+        resp = self.clientSocket.recv(self.RESPSIZE).decode()
         print(resp)
 
     def runClient(self):
