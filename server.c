@@ -9,6 +9,10 @@
 #include <netinet/in.h>
 
 #define MAX_CLIENT 5
+#define RESPSIZE 300
+#define BUFSIZE 256
+#define UNAMESIZE 32
+#define KEYSIZE 5
 
 void initServerAddr(struct sockaddr_in *servAddr, int port) {
     servAddr->sin_family = AF_INET;
@@ -19,31 +23,60 @@ void initServerAddr(struct sockaddr_in *servAddr, int port) {
 typedef struct {
     int servSocket;
     int connSocket;
+    int occupied;
 } clientConn;
+
+
+static pthread_t threads[MAX_CLIENT];
+static clientConn clients[MAX_CLIENT];
+static int clientCount = 0;
+
+int availableSlot() {
+    if (clientCount >= MAX_CLIENT) return -1;
+    for (int i = 0; i < MAX_CLIENT; ++i) {
+        if (clients[i].occupied != 1) return i;
+    }
+    return -1;
+}
+
+void removeClient(clientConn *client) {
+    client->servSocket = -1;
+    client->connSocket = -1;
+    client->occupied = 0;
+    clientCount--;
+}
+
+void sendToAllClient(char response[RESPSIZE]) {
+    for (int i = 0; i < MAX_CLIENT; ++i) {
+        if (clients[i].occupied != 1) continue;
+        send(clients[i].connSocket, response, strlen(response), 0);
+    }
+}
 
 void *handleClient(void *args) {
     clientConn client = * (clientConn *) args;
     int servSocket = client.servSocket;
     int connSocket = client.connSocket;
     
-    char response[300], buffer[256], user[32], key[5];
-    memset(user, 0, 32);
-    recv(connSocket, user, 31, 0);
-    printf("Connected to user %s\n", user);
+    char response[RESPSIZE], buffer[BUFSIZE], user[UNAMESIZE], key[KEYSIZE];
+    memset(user, 0, UNAMESIZE);
+    recv(connSocket, user, UNAMESIZE-1, 0);
+    printf("Connection Log - %s Connected\n", user);
     while (1) {
-        memset(response, 0, 288);
-        memset(buffer, 0, 256);
-        memset(key, 0, 5);
-        recv(connSocket, buffer, 255, 0);
-        memcpy(key, buffer, 4);
+        memset(response, 0, RESPSIZE);
+        memset(buffer, 0, BUFSIZE);
+        memset(key, 0, KEYSIZE);
+        recv(connSocket, buffer, BUFSIZE-1, 0);
+        memcpy(key, buffer, KEYSIZE-1);
         if (strcmp(key, "QUIT")==0) {
+            removeClient(&client);
             break;
         }
-        printf("Log %s message: %s\n", user, buffer);
+        printf("Message Log - %s: %s\n", user, buffer);
         sprintf(response, "%s : %s", user, buffer);
-        send(connSocket, response, strlen(response), 0);
+        sendToAllClient(response);
     }
-    printf("Closed connection with %s\n", user);
+    printf("%s Has Disconnected\n", user);
     close(connSocket);
     return NULL;
 }
@@ -54,7 +87,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int servSocket = socket(AF_INET, SOCK_STREAM, 0);
+    int servSocket = socket(AF_INET, SOCK_STREAM, 0), connSocket;
     if (servSocket < 0) {
         printf("Server Socket Open Failed\n");
         return 1;
@@ -68,24 +101,22 @@ int main(int argc, char **argv) {
     }
 
     listen(servSocket, 5);
-
-    int connSocket;
-    clientConn clients[MAX_CLIENT];
-    pthread_t threads[MAX_CLIENT];
-    int clientCount = 0;
-
     while (1) {
         struct sockaddr_in clientAddr;
         socklen_t clientSockSize = sizeof(clientAddr);
         connSocket = accept(servSocket, (struct sockaddr *) &clientAddr, &clientSockSize);
-        if (clientCount >= MAX_CLIENT) {
-            printf("Max client has reached, cannot accept more users\n");
+        int available = availableSlot();
+        if (available < 0) {
+            printf("Max client amout has reached, cannot accept more users\n");
+            send(connSocket, "FAILED", 6, 0);
             continue;
         }
 
-        clients[clientCount].servSocket = servSocket;
-        clients[clientCount].connSocket = connSocket;
-        pthread_create(&threads[clientCount], NULL, handleClient, &clients[clientCount]);
+        send(connSocket, "SUCCESS", 7, 0);
+        clients[available].servSocket = servSocket;
+        clients[available].connSocket = connSocket;
+        clients[available].occupied = 1;
+        pthread_create(&threads[available], NULL, handleClient, &clients[available]);
         clientCount++;
     }
     close(servSocket);
