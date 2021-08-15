@@ -8,24 +8,35 @@ class Client:
         self.host = host or socket.gethostname()
         self.port = port or 45001
         self.user = user
+        self.connected = False
+
+    def quit(self):
+        self.connected = False
+        self.clientSocket.close()
+        exit()
+
+    def connectToServer(self):
         self.clientSocket.connect((self.host, self.port))
-        self.connected = True
-        self.clientSocket.send(self.user.encode())
+        connResp = self.clientSocket.recv(10).decode()
+        if connResp == "FAILED":
+            print("Connection Failed; Exiting")
+            self.quit()
+        else:
+            self.connected = True
+            self.clientSocket.send(self.user.encode())
 
     def sendMSG(self):
-        # msg = input("Enter Message: ")
         msg = sys.stdin.readline().strip()
         self.clientSocket.send(msg.encode())
-        if msg == "QUIT":
-            self.connected = False
-            self.clientSocket.close()
-            exit()
+        if msg[:4] == "QUIT":
+            self.quit()
 
     def receiveMSG(self):
         resp = self.clientSocket.recv(300).decode()
         print(resp)
 
     def runClient(self):
+        self.connectToServer()
         while True:
             readList = [sys.stdin, self.clientSocket]
             readable, _, _ = select.select(readList, [], [])
