@@ -12,7 +12,7 @@
 #define RESPSIZE 300
 #define BUFSIZE 256
 #define UNAMESIZE 32
-#define KEYSIZE 5
+#define KEYSIZE 12
 
 void initServerAddr(struct sockaddr_in *servAddr, int port) {
     servAddr->sin_family = AF_INET;
@@ -54,9 +54,9 @@ void sendToAllClient(char response[RESPSIZE]) {
 }
 
 void *handleClient(void *args) {
-    clientConn client = * (clientConn *) args;
-    int servSocket = client.servSocket;
-    int connSocket = client.connSocket;
+    clientConn *client = (clientConn *) args;
+    int servSocket = client->servSocket;
+    int connSocket = client->connSocket;
     
     char response[RESPSIZE], buffer[BUFSIZE], user[UNAMESIZE], key[KEYSIZE];
     memset(user, 0, UNAMESIZE);
@@ -69,7 +69,7 @@ void *handleClient(void *args) {
         recv(connSocket, buffer, BUFSIZE-1, 0);
         memcpy(key, buffer, KEYSIZE-1);
         if (strcmp(key, "QUIT")==0) {
-            removeClient(&client);
+            removeClient(client);
             break;
         }
         printf("Message Log - %s: %s\n", user, buffer);
@@ -108,11 +108,11 @@ int main(int argc, char **argv) {
         int available = availableSlot();
         if (available < 0) {
             printf("Max client amout has reached, cannot accept more users\n");
-            send(connSocket, "FAILED", 6, 0);
+            send(connSocket, "CONN_FAILURE", KEYSIZE, 0);
             continue;
         }
 
-        send(connSocket, "SUCCESS", 7, 0);
+        send(connSocket, "CONN_SUCCESS", KEYSIZE, 0);
         clients[available].servSocket = servSocket;
         clients[available].connSocket = connSocket;
         clients[available].occupied = 1;
