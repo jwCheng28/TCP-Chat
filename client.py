@@ -27,6 +27,8 @@ class Client:
                 print("Connection Failed; Exiting")
                 self.quit()
             elif self.KEYS[connResp] > 0:
+                print("Connection Success")
+                print("_"*36)
                 self.connected = True
                 self.clientSocket.send(self.user.encode())
         else:
@@ -55,6 +57,7 @@ class Client:
                     self.sendMSG()
 
 if __name__ == "__main__":
+    port = int(input("Enter Port Number: "))
     user = input("Enter Username: ")
-    client = Client(user=user)
+    client = Client(port=port, user=user)
     client.runClient()

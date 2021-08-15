@@ -24,6 +24,7 @@ typedef struct {
     int servSocket;
     int connSocket;
     int occupied;
+    int index;
 } clientConn;
 
 
@@ -43,12 +44,20 @@ void removeClient(clientConn *client) {
     client->servSocket = -1;
     client->connSocket = -1;
     client->occupied = 0;
+    client->index = -1;
     clientCount--;
 }
 
 void sendToAllClient(char response[RESPSIZE]) {
     for (int i = 0; i < MAX_CLIENT; ++i) {
         if (clients[i].occupied != 1) continue;
+        send(clients[i].connSocket, response, strlen(response), 0);
+    }
+}
+
+void sendToAllButSelf(char response[RESPSIZE], int selfIndex) {
+    for (int i = 0; i < MAX_CLIENT; ++i) {
+        if (clients[i].occupied != 1 || i == selfIndex) continue;
         send(clients[i].connSocket, response, strlen(response), 0);
     }
 }
@@ -74,7 +83,8 @@ void *handleClient(void *args) {
         }
         printf("Message Log - %s: %s\n", user, buffer);
         sprintf(response, "%s : %s", user, buffer);
-        sendToAllClient(response);
+        sendToAllButSelf(response, client->index);
+        // sendToAllClient(response);
     }
     printf("%s Has Disconnected\n", user);
     close(connSocket);
@@ -116,6 +126,7 @@ int main(int argc, char **argv) {
         clients[available].servSocket = servSocket;
         clients[available].connSocket = connSocket;
         clients[available].occupied = 1;
+        clients[available].index = available;
         pthread_create(&threads[available], NULL, handleClient, &clients[available]);
         clientCount++;
     }
