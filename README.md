@@ -3,6 +3,7 @@ This project is mainly for learning how to create a basic multithreaded server. 
 
 ## Running the Project
 The current implementation only targets linux machines, hence the code will not work unless run on linux or WSL. A Makefile is provided, simply run `make` to compile the C server.
+Or run `make server_tp` to compile the thread pool implementation of the server.
 ### Starting the Server
 To start the server, simply run the generated executable with desire port number `./server [port number]`
 ### Start a Client
