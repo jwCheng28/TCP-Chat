@@ -30,6 +30,7 @@ typedef struct {
 
 static pthread_t threads[MAX_CLIENT];
 static clientConn clients[MAX_CLIENT];
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static int clientCount = 0;
 
 int availableSlot() {
@@ -38,10 +39,18 @@ int availableSlot() {
      * Return:
      *  - Returns index of available slot or -1 if there's no available slot
      */
-    if (clientCount >= MAX_CLIENT) return -1;
-    for (int i = 0; i < MAX_CLIENT; ++i) {
-        if (clients[i].occupied != 1) return i;
+    pthread_mutex_lock(&mutex);
+    if (clientCount >= MAX_CLIENT) {
+        pthread_mutex_unlock(&mutex);
+        return -1;
     }
+    for (int i = 0; i < MAX_CLIENT; ++i) {
+        if (clients[i].occupied != 1) {
+            pthread_mutex_unlock(&mutex);
+            return i;
+        }
+    }
+    pthread_mutex_unlock(&mutex);
     return -1;
 }
 
@@ -64,10 +73,12 @@ void sendToAllClient(char response[RESPSIZE]) {
      * Params:
      *  - char response[RESPSIZE] : the response that we want to send to all the client
      */
+    pthread_mutex_lock(&mutex);
     for (int i = 0; i < MAX_CLIENT; ++i) {
         if (clients[i].occupied != 1) continue;
         send(clients[i].connSocket, response, strlen(response), 0);
     }
+    pthread_mutex_unlock(&mutex);
 }
 
 void sendToAllButIndex(char response[RESPSIZE], int index) {
@@ -77,10 +88,12 @@ void sendToAllButIndex(char response[RESPSIZE], int index) {
      *  - char response[RESPSIZE] : the response that we want to send
      *  - int selfIndex : specific client index
      */
+    pthread_mutex_lock(&mutex);
     for (int i = 0; i < MAX_CLIENT; ++i) {
         if (clients[i].occupied != 1 || i == index) continue;
         send(clients[i].connSocket, response, strlen(response), 0);
     }
+    pthread_mutex_unlock(&mutex);
 }
 
 void *handleClient(void *args) {
