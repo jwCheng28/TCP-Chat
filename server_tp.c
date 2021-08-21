@@ -204,8 +204,8 @@ int main(int argc, char **argv) {
         clients[available].handled = 0;
         clients[available].index = available;
         clientCount++;
-        pthread_cond_signal(&thread_conditional);
         pthread_mutex_unlock(&mutex);
+        pthread_cond_signal(&thread_conditional);
     }
     close(servSocket);
     return 0;
