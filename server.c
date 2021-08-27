@@ -116,7 +116,11 @@ void *handleClient(void *args) {
         memset(response, 0, RESPSIZE);
         memset(buffer, 0, BUFSIZE);
         memset(key, 0, KEYSIZE);
-        recv(connSocket, buffer, BUFSIZE-1, 0);
+        if (recv(connSocket, buffer, BUFSIZE-1, 0) <= 0) {
+            printf("Lost Connection with %s\n", user);
+            memset(buffer, 0, BUFSIZE);
+            strncpy(buffer, "QUIT", KEYSIZE);
+        }
         memcpy(key, buffer, KEYSIZE-1);
         if (strcmp(key, "QUIT")==0) {
             sprintf(response, "> %s has disconnected", user);
