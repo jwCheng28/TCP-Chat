@@ -1,4 +1,7 @@
 /target
 /temp
-*.o
+
+*.o*
+*.txt
+
 server
