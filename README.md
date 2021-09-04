@@ -7,7 +7,7 @@ Or run `make server_tp` to compile the thread pool implementation of the server.
 ### Starting the Server
 To start the server, simply run the generated executable with desire port number `./server [port number]`
 ### Start a Client
-The client is currently implemented in Python, simply run `python client.py` and the program will prompt for a Username and Port Number (use the same as server). Then after a "Connection Success" message is shown, you can start typing messages and send them by pressing enter.
+The client is currently implemented in Python, simply run `python client.py` and the program will prompt for a Hostname (press enter to just use localhost), Port Number (use the same as server), and Username. Then after a "Connection Success" message is shown, you can start typing messages and send them by pressing enter.
 ### Quit the Chat
 To quit the chat, simply type `QUIT` in the chat.
 

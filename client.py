@@ -57,7 +57,8 @@ class Client:
                     self.sendMSG()
 
 if __name__ == "__main__":
+    host = input("Enter Hostname (or press Enter to use localhost): ")
     port = int(input("Enter Port Number: "))
     user = input("Enter Username: ")
-    client = Client(port=port, user=user)
+    client = Client(host=host, port=port, user=user)
     client.runClient()
